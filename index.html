@@ -58,7 +58,7 @@ footer{text-align:center;color:var(--suave);padding:28px 10px;border-top:1px sol
 <header>
   <h1>TU MANO CONTROLA EL ARDUINO</h1>
   <p class="lema">Misión de taller: cámara + Python + 3 LEDs</p>
-  <div class="meta">Taller de Programación · Python + Arduino (Firmata) · Duración estimada: una clase</div>
+  <div class="meta">Taller de Programación · Python + Arduino (Firmata) · Duración estimada: una clase larga</div>
 </header>
 
 <main>
@@ -104,19 +104,71 @@ footer{text-align:center;color:var(--suave);padding:28px 10px;border-top:1px sol
 </section>
 
 <section id="m0">
-  <span class="tiempo">⏱ 10 min</span>
+  <span class="tiempo">⏱ 15 min</span>
   <div class="mn">MISIÓN 0</div>
   <h2>Preparar el laboratorio</h2>
   <div class="card">
-    <p class="obj">Objetivo: dejar el Arduino listo para recibir órdenes de Python.</p>
+    <p class="obj">Objetivo: dejar el Arduino y la carpeta del proyecto listos.</p>
     <p><b>1) Cargar Firmata.</b> En el Arduino IDE: <code class="i">Archivo → Ejemplos → Firmata → StandardFirmata</code> y subirlo a la placa.</p>
     <div class="analogia"><b>Firmata</b> convierte al Arduino en un <b>robot obediente</b>: no tiene programa propio, solo espera órdenes por el cable USB. Ejemplo de orden: "pin 8, prendete".</div>
     <p><b>2) Anotar el puerto.</b> En <code class="i">Herramientas → Puerto</code> fíjense cuál es (por ejemplo <code class="i">COM3</code>). Escríbanlo acá: <b>________</b></p>
     <p><b>3) Cerrar el Arduino IDE.</b> Si queda abierto, ocupa el puerto y Python no puede conectarse.</p>
     <p><b>4) Instalar las librerías</b> en la terminal:</p>
     <div class="code"><pre><code>pip install pyfirmata2 opencv-python mediapipe</code></pre></div>
-    <div class="alerta">Si <code class="i">mediapipe</code> no se instala, probablemente la versión de Python es muy nueva. Avisen al profe: se resuelve con Python 3.11 o 3.12.</div>
-    <div class="hecho"><b>✅ Chequeo:</b> Firmata subido, puerto anotado y las tres librerías instaladas sin errores.</div>
+    <p><b>5) Crear la carpeta del proyecto</b> (por ejemplo <code class="i">gestos</code>) y descargar adentro el <b>modelo de manos</b>, un archivo de unos 8 MB que ya viene entrenado:</p>
+    <div class="code"><pre><code>https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task</code></pre></div>
+    <p>Pegan ese link en el navegador y guardan el archivo <b>con ese mismo nombre</b> dentro de la carpeta.</p>
+    <div class="analogia">El modelo es el <b>cerebro ya entrenado</b> que sabe reconocer manos. Nosotros no lo entrenamos: lo descargamos y lo usamos, como instalar la app de un juego.</div>
+    <p><b>6) Crear el archivo <code class="i">manos.py</code></b> en la misma carpeta, con este contenido. Es el "traductor" entre la cámara y nuestro programa. Por ahora no hace falta entenderlo línea por línea:</p>
+<div class="code"><pre><code># manos.py  -  Detector de manos (usa el modelo hand_landmarker.task)
+import os
+import time
+import cv2
+import mediapipe as mp
+from mediapipe.tasks.python import BaseOptions, vision
+
+RUTA_MODELO = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "hand_landmarker.task")
+
+_detector = vision.HandLandmarker.create_from_options(vision.HandLandmarkerOptions(
+    base_options=BaseOptions(model_asset_path=RUTA_MODELO),
+    running_mode=vision.RunningMode.VIDEO,
+    num_hands=1,
+    min_hand_detection_confidence=0.7,
+    min_tracking_confidence=0.6))
+
+_CONEXIONES = [(c.start, c.end) for c in vision.HandLandmarksConnections.HAND_CONNECTIONS]
+_inicio = time.time()
+_ultimo_ms = -1
+
+def detectar(frame):
+    """Recibe una imagen de la cámara (BGR).
+    Devuelve la lista de 21 puntos de la mano (cada uno con .x e .y entre 0 y 1),
+    o None si no hay ninguna mano."""
+    global _ultimo_ms
+    ms = int((time.time() - _inicio) * 1000)
+    if ms &lt;= _ultimo_ms:                 # el tiempo tiene que crecer siempre
+        ms = _ultimo_ms + 1
+    _ultimo_ms = ms
+    imagen = mp.Image(image_format=mp.ImageFormat.SRGB,
+                      data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    resultado = _detector.detect_for_video(imagen, ms)
+    if resultado.hand_landmarks:
+        return resultado.hand_landmarks[0]
+    return None
+
+def dibujar(frame, puntos):
+    """Dibuja el esqueleto de la mano sobre la imagen."""
+    alto, ancho = frame.shape[:2]
+    def pt(i):
+        return int(puntos[i].x * ancho), int(puntos[i].y * alto)
+    for a, b in _CONEXIONES:
+        cv2.line(frame, pt(a), pt(b), (255, 255, 255), 2)
+    for i in range(len(puntos)):
+        cv2.circle(frame, pt(i), 4, (0, 0, 255), -1)</code></pre></div>
+    <div class="alerta">Todos los programas de la clase (<code class="i">prueba.py</code>, etc.) se guardan <b>en la misma carpeta</b> que <code class="i">manos.py</code> y <code class="i">hand_landmarker.task</code>. Si no, Python no los encuentra.</div>
+    <div class="alerta">Si <code class="i">pip install mediapipe</code> falla, avisen al profe: puede necesitar otra versión de Python.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> en la carpeta hay tres cosas: <code class="i">hand_landmarker.task</code>, <code class="i">manos.py</code> y las librerías instaladas sin errores.</div>
   </div>
 </section>
 
@@ -176,11 +228,7 @@ placa.exit()                             # cierra la conexión</code></pre></div
   <div class="card">
     <p class="obj">Objetivo: ver la cámara y los 21 puntos de tu mano dibujados en tiempo real.</p>
 <div class="code"><pre><code>import cv2
-import mediapipe as mp
-
-mp_manos = mp.solutions.hands
-dibujo = mp.solutions.drawing_utils
-detector = mp_manos.Hands(max_num_hands=1, min_detection_confidence=0.7)
+import manos                             # nuestro archivo manos.py
 
 cam = cv2.VideoCapture(0)                # 0 = cámara principal (probar 1 si queda negra)
 
@@ -189,12 +237,10 @@ while True:
     if not ok:
         break
     frame = cv2.flip(frame, 1)           # efecto espejo
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # MediaPipe pide RGB
-    resultado = detector.process(rgb)
 
-    if resultado.multi_hand_landmarks:   # si encontró una mano...
-        mano = resultado.multi_hand_landmarks[0]
-        dibujo.draw_landmarks(frame, mano, mp_manos.HAND_CONNECTIONS)
+    puntos = manos.detectar(frame)       # ¿hay una mano? devuelve los 21 puntos o None
+    if puntos:
+        manos.dibujar(frame, puntos)     # dibuja el esqueleto
 
     cv2.imshow("Camara (Q para salir)", frame)
     if cv2.waitKey(1) &amp; 0xFF == ord("q"):
@@ -218,7 +264,7 @@ cv2.destroyAllWindows()</code></pre></div>
     <p>Este es el programa completo. Reemplazá el puerto y probalo:</p>
 <div class="code"><pre><code>import math
 import cv2
-import mediapipe as mp
+import manos                             # nuestro archivo manos.py
 from pyfirmata2 import Arduino
 
 # ---------- ARDUINO ----------
@@ -235,8 +281,7 @@ def mostrar(dedos):
 def distancia(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
 
-def contar_dedos(mano):
-    p = mano.landmark                    # los 21 puntos de la mano
+def contar_dedos(p):                     # p = lista de los 21 puntos de la mano
     # Pulgar: punta (4) vs articulación (3), medido desde la base del meñique (17)
     dedos = 1 if distancia(p[4], p[17]) &gt; distancia(p[3], p[17]) else 0
     # Índice, mayor, anular, meñique: (punta, articulación del medio)
@@ -246,9 +291,6 @@ def contar_dedos(mano):
     return dedos
 
 # ---------- CAMARA ----------
-mp_manos = mp.solutions.hands
-dibujo = mp.solutions.drawing_utils
-detector = mp_manos.Hands(max_num_hands=1, min_detection_confidence=0.7)
 cam = cv2.VideoCapture(0)
 
 try:
@@ -257,13 +299,12 @@ try:
         if not ok:
             break
         frame = cv2.flip(frame, 1)
-        resultado = detector.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
         dedos = 0                        # sin mano = 0
-        if resultado.multi_hand_landmarks:
-            mano = resultado.multi_hand_landmarks[0]
-            dibujo.draw_landmarks(frame, mano, mp_manos.HAND_CONNECTIONS)
-            dedos = contar_dedos(mano)
+        puntos = manos.detectar(frame)
+        if puntos:
+            manos.dibujar(frame, puntos)
+            dedos = contar_dedos(puntos)
 
         mostrar(dedos)                   # ordena al Arduino
         cv2.putText(frame, str(dedos), (30, 80), cv2.FONT_HERSHEY_SIMPLEX,
@@ -307,6 +348,8 @@ finally:
       <tr><td>No detecta la mano</td><td>Más luz, fondo simple, mano a 40-60 cm.</td></tr>
       <tr><td>Cuenta mal los dedos</td><td>Dedos hacia arriba. Agregar <code class="i">print(dedos)</code> para ver qué número lee.</td></tr>
       <tr><td>Error al instalar mediapipe</td><td>Avisar al profe: puede necesitar otra versión de Python.</td></tr>
+      <tr><td><i>No such file</i> o error con <code class="i">hand_landmarker.task</code></td><td>El archivo del modelo tiene que estar en la misma carpeta que <code class="i">manos.py</code> y llamarse exactamente <code class="i">hand_landmarker.task</code>.</td></tr>
+      <tr><td><i>No module named manos</i></td><td>El programa tiene que estar guardado en la misma carpeta que <code class="i">manos.py</code>.</td></tr>
     </table>
     <p><b>Regla de los 5 minutos:</b> si pasaron 5 minutos trabados, lean el error en voz alta, búsquenlo y comparen el código con la guía. Después, pregunten.</p>
   </div>
@@ -322,6 +365,7 @@ finally:
       <tr><td>Pin digital</td><td>Conexión que solo puede estar en 0 (apagado) o 1 (prendido)</td></tr>
       <tr><td>Salida (output)</td><td>El Arduino manda energía, como a un LED</td></tr>
       <tr><td>Frame</td><td>Una "foto" de la cámara</td></tr>
+      <tr><td>Modelo (.task)</td><td>Archivo con una red neuronal ya entrenada para reconocer manos</td></tr>
       <tr><td>Landmark</td><td>Uno de los 21 puntos de la mano</td></tr>
       <tr><td>Antirrebote</td><td>Filtro para ignorar cambios falsos de corta duración</td></tr>
     </table>
