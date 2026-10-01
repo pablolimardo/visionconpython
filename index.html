@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taller: Tu mano controla el Arduino</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=JetBrains+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e27;--card:rgba(255,255,255,.05);--borde:rgba(0,255,136,.25);
+--verde:#00ff88;--cyan:#00d9ff;--rojo:#ff4d6d;--amarillo:#ffd23f;--azul:#4da6ff;--txt:#e6edf7;--suave:#9aa7c7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(1100px 500px at 85% -10%,#16205a55,transparent),var(--bg);
+color:var(--txt);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.6}
+#progreso{position:fixed;top:0;left:0;height:4px;width:0;background:linear-gradient(90deg,var(--verde),var(--cyan));z-index:99}
+header{padding:56px 20px 26px;text-align:center}
+h1{font-family:Orbitron,sans-serif;color:var(--verde);font-size:clamp(1.8rem,5.5vw,3rem);margin:0;text-shadow:0 0 22px #00ff8855}
+.lema{color:var(--cyan);font-size:1.15rem;margin:8px 0 0}
+.meta{color:var(--suave);font-size:.92rem;margin-top:12px}
+main{max-width:940px;margin:0 auto;padding:0 18px 70px}
+section{margin-top:38px}
+h2{font-family:Orbitron,sans-serif;color:var(--verde);font-size:1.3rem;margin:0 0 12px}
+h3{color:var(--cyan);margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:20px;backdrop-filter:blur(10px);margin:12px 0}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.mn{font-family:Orbitron,sans-serif;color:var(--amarillo);font-size:.95rem}
+.tiempo{float:right;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--amarillo);border:1px solid var(--amarillo);border-radius:12px;padding:2px 10px}
+.obj{color:var(--suave)}
+.reto,.analogia,.alerta{padding:8px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+.reto{border-left:4px solid var(--amarillo);background:#ffd23f12}
+.analogia{border-left:4px solid var(--cyan);background:#00d9ff12}
+.alerta{border-left:4px solid var(--rojo);background:#ff4d6d14}
+.code{position:relative;margin:12px 0}
+pre{margin:0;padding:16px;overflow:auto;background:#050818;border:1px solid #ffffff18;border-radius:12px;
+font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.5;color:#c9f7e0}
+.copiar{position:absolute;top:8px;right:8px;background:#00ff8820;color:var(--verde);border:1px solid var(--verde);
+border-radius:8px;padding:3px 10px;font-size:.75rem;cursor:pointer;font-family:'JetBrains Mono',monospace}
+.copiar:hover{background:var(--verde);color:#001a0d}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:8px 10px;border-bottom:1px solid #ffffff18;text-align:left;vertical-align:top}
+th{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:.78rem;text-transform:uppercase}
+.flujo{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.nodo{padding:12px 16px;border-radius:12px;border:1px solid var(--borde);background:#0d1440;text-align:center;min-width:130px}
+.nodo small{display:block;color:var(--suave)}
+.flecha{color:var(--verde);font-size:1.5rem}
+.led{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.hz{text-align:center}.hz .em{font-size:2rem}
+code.i{font-family:'JetBrains Mono',monospace;background:#ffffff14;padding:1px 6px;border-radius:6px;font-size:.88em}
+ul.check{list-style:none;padding:0;margin:8px 0}ul.check li{padding:5px 0}
+ul.check input{accent-color:var(--verde);width:18px;height:18px;vertical-align:middle;margin-right:8px}
+ul.check input:checked + span{text-decoration:line-through;color:var(--suave)}
+.hecho{margin-top:12px;padding-top:10px;border-top:1px dashed #ffffff22}
+footer{text-align:center;color:var(--suave);padding:28px 10px;border-top:1px solid #ffffff12;font-size:.9rem}
+</style>
+</head>
+<body>
+<div id="progreso"></div>
+
+<header>
+  <h1>TU MANO CONTROLA EL ARDUINO</h1>
+  <p class="lema">Misión de taller: cámara + Python + 3 LEDs</p>
+  <div class="meta">Taller de Programación · Python + Arduino (Firmata) · Duración estimada: una clase</div>
+</header>
+
+<main>
+
+<section>
+  <h2>🎯 De qué se trata</h2>
+  <div class="card">
+    <p><b>Al terminar esta clase vas a poder:</b> mostrar 1, 2 o 3 dedos frente a la cámara y ver cómo se prende el LED correspondiente.</p>
+    <div class="grid">
+      <div class="card hz"><div class="em">☝️</div><b>1 dedo</b><br><span class="led" style="background:var(--rojo)"></span>LED rojo</div>
+      <div class="card hz"><div class="em">✌️</div><b>2 dedos</b><br><span class="led" style="background:var(--azul)"></span>LED azul</div>
+      <div class="card hz"><div class="em">🤟</div><b>3 dedos</b><br><span class="led" style="background:var(--amarillo)"></span>LED amarillo</div>
+    </div>
+    <div class="analogia"><b>Analogía:</b> la cámara son los <b>ojos</b>, Python es el <b>cerebro</b> que entiende el gesto, y el Arduino son los <b>músculos</b> que ejecutan. Hoy armamos el cuerpo completo.</div>
+    <div class="flujo">
+      <div class="nodo">📷 Cámara<small>ojos</small></div><div class="flecha">➜</div>
+      <div class="nodo">🐍 Python<small>cerebro</small></div><div class="flecha">➜</div>
+      <div class="nodo">🔌 Arduino<small>músculos</small></div><div class="flecha">➜</div>
+      <div class="nodo">💡 LEDs<small>resultado</small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Cómo trabajamos</h3>
+    <p>En parejas, con dos roles que <b>se intercambian en cada misión</b>:</p>
+    <div class="grid">
+      <div class="card"><b>🧑‍💻 Piloto</b><br>Tiene el teclado y escribe el código.</div>
+      <div class="card"><b>🧭 Copiloto</b><br>Lee la guía en voz alta y arma el circuito.</div>
+    </div>
+    <p>Cada misión termina con un <b>✅ Chequeo</b>. Si el chequeo da bien, pasan a la siguiente. Si no, miren la sección <a href="#fallas" style="color:var(--cyan)">Si algo falla</a> antes de llamar al profe.</p>
+  </div>
+
+  <div class="card">
+    <h3>Materiales por pareja</h3>
+    <ul>
+      <li>1 Arduino Uno + cable USB</li>
+      <li>3 LEDs (rojo, azul y amarillo, o los colores que haya)</li>
+      <li>3 resistencias de 220 Ω (sirve cualquiera entre 220 Ω y 1 kΩ)</li>
+      <li>Protoboard y 4 cables</li>
+      <li>Notebook con cámara y Python instalado</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m0">
+  <span class="tiempo">⏱ 10 min</span>
+  <div class="mn">MISIÓN 0</div>
+  <h2>Preparar el laboratorio</h2>
+  <div class="card">
+    <p class="obj">Objetivo: dejar el Arduino listo para recibir órdenes de Python.</p>
+    <p><b>1) Cargar Firmata.</b> En el Arduino IDE: <code class="i">Archivo → Ejemplos → Firmata → StandardFirmata</code> y subirlo a la placa.</p>
+    <div class="analogia"><b>Firmata</b> convierte al Arduino en un <b>robot obediente</b>: no tiene programa propio, solo espera órdenes por el cable USB. Ejemplo de orden: "pin 8, prendete".</div>
+    <p><b>2) Anotar el puerto.</b> En <code class="i">Herramientas → Puerto</code> fíjense cuál es (por ejemplo <code class="i">COM3</code>). Escríbanlo acá: <b>________</b></p>
+    <p><b>3) Cerrar el Arduino IDE.</b> Si queda abierto, ocupa el puerto y Python no puede conectarse.</p>
+    <p><b>4) Instalar las librerías</b> en la terminal:</p>
+    <div class="code"><pre><code>pip install pyfirmata2 opencv-python mediapipe</code></pre></div>
+    <div class="alerta">Si <code class="i">mediapipe</code> no se instala, probablemente la versión de Python es muy nueva. Avisen al profe: se resuelve con Python 3.11 o 3.12.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> Firmata subido, puerto anotado y las tres librerías instaladas sin errores.</div>
+  </div>
+</section>
+
+<section id="m1">
+  <span class="tiempo">⏱ 10 min</span>
+  <div class="mn">MISIÓN 1</div>
+  <h2>Armar el circuito</h2>
+  <div class="card">
+    <p class="obj">Objetivo: conectar los 3 LEDs a los pines 8, 9 y 10.</p>
+    <table>
+      <tr><th>LED</th><th>Pin del Arduino</th><th>Camino</th></tr>
+      <tr><td><span class="led" style="background:var(--rojo)"></span>Rojo</td><td>D8</td><td rowspan="3">Pin → resistencia → pata <b>larga</b> del LED.<br>Pata <b>corta</b> → GND.<br>Los tres LEDs comparten el GND.</td></tr>
+      <tr><td><span class="led" style="background:var(--azul)"></span>Azul</td><td>D9</td></tr>
+      <tr><td><span class="led" style="background:var(--amarillo)"></span>Amarillo</td><td>D10</td></tr>
+    </table>
+    <div class="analogia">Cada LED es una <b>calle de un solo sentido</b>: la corriente entra por la pata larga y sale por la corta. La resistencia es el <b>semáforo</b> que evita que pase demasiada corriente y se queme el LED.</div>
+    <div class="alerta"><b>Nunca</b> conecten un LED sin su resistencia. Con la placa desconectada del USB, armen todo y recién después enchufen.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> el copiloto le muestra el circuito al profe antes de seguir. <i>(Después se intercambian los roles.)</i></div>
+  </div>
+</section>
+
+<section id="m2">
+  <span class="tiempo">⏱ 10 min</span>
+  <div class="mn">MISIÓN 2</div>
+  <h2>Python le habla al Arduino</h2>
+  <div class="card">
+    <p class="obj">Objetivo: prender los 3 LEDs, uno por uno, desde un programa de Python.</p>
+<div class="code"><pre><code>import time
+from pyfirmata2 import Arduino
+
+placa = Arduino("COM3")                  # &lt;-- cambiar por TU puerto
+
+pines = [8, 9, 10]
+leds = [placa.get_pin(f"d:{p}:o") for p in pines]   # d = digital, o = salida
+
+for led in leds:                         # recorre los 3 LEDs
+    led.write(1)                         # 1 = prender
+    time.sleep(0.5)
+    led.write(0)                         # 0 = apagar
+
+placa.exit()                             # cierra la conexión</code></pre></div>
+    <table>
+      <tr><th>Línea</th><th>Qué hace</th></tr>
+      <tr><td><code class="i">Arduino("COM3")</code></td><td>Se conecta a la placa por el puerto</td></tr>
+      <tr><td><code class="i">get_pin("d:8:o")</code></td><td>Elige el pin: <b>d</b>igital, número <b>8</b>, <b>o</b>utput (salida)</td></tr>
+      <tr><td><code class="i">write(1)</code> / <code class="i">write(0)</code></td><td>Prende / apaga</td></tr>
+    </table>
+    <div class="reto"><b>Mini-desafío:</b> hagan que los LEDs vayan y vuelvan como el "Auto Fantástico", y que cada vuelta sea más rápida.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> los 3 LEDs se prenden en orden desde Python.</div>
+  </div>
+</section>
+
+<section id="m3">
+  <span class="tiempo">⏱ 15 min</span>
+  <div class="mn">MISIÓN 3</div>
+  <h2>Abrir los ojos: detectar la mano</h2>
+  <div class="card">
+    <p class="obj">Objetivo: ver la cámara y los 21 puntos de tu mano dibujados en tiempo real.</p>
+<div class="code"><pre><code>import cv2
+import mediapipe as mp
+
+mp_manos = mp.solutions.hands
+dibujo = mp.solutions.drawing_utils
+detector = mp_manos.Hands(max_num_hands=1, min_detection_confidence=0.7)
+
+cam = cv2.VideoCapture(0)                # 0 = cámara principal (probar 1 si queda negra)
+
+while True:
+    ok, frame = cam.read()               # frame = una "foto" de la cámara
+    if not ok:
+        break
+    frame = cv2.flip(frame, 1)           # efecto espejo
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # MediaPipe pide RGB
+    resultado = detector.process(rgb)
+
+    if resultado.multi_hand_landmarks:   # si encontró una mano...
+        mano = resultado.multi_hand_landmarks[0]
+        dibujo.draw_landmarks(frame, mano, mp_manos.HAND_CONNECTIONS)
+
+    cv2.imshow("Camara (Q para salir)", frame)
+    if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+        break
+
+cam.release()
+cv2.destroyAllWindows()</code></pre></div>
+    <div class="analogia">Un video es un <b>flipbook</b>: fotos seguidas. Cada vuelta del <code class="i">while</code> es una página nueva. Los 21 puntos son el <b>esqueleto de un personaje de videojuego</b>: Python no ve "una mano", ve puntos con coordenadas.</div>
+    <div class="reto"><b>Mini-desafío:</b> acerquen y alejen la mano, y prueben con poca luz. ¿A qué distancia deja de verla? Anótenlo.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> aparecen los puntitos sobre tu mano y la siguen cuando la movés.</div>
+  </div>
+</section>
+
+<section id="m4">
+  <span class="tiempo">⏱ 20 min</span>
+  <div class="mn">MISIÓN 4</div>
+  <h2>¡Hechizo! La mano controla los LEDs</h2>
+  <div class="card">
+    <p class="obj">Objetivo: contar los dedos y prender el LED correspondiente.</p>
+    <p><b>La lógica:</b> un dedo está levantado si su <b>punta</b> está más arriba que su <b>articulación del medio</b>. En una imagen, arriba es <code class="i">y = 0</code>, así que "más arriba" significa un <code class="i">y</code> <b>menor</b>.</p>
+    <p>Este es el programa completo. Reemplazá el puerto y probalo:</p>
+<div class="code"><pre><code>import math
+import cv2
+import mediapipe as mp
+from pyfirmata2 import Arduino
+
+# ---------- ARDUINO ----------
+placa = Arduino("COM3")                  # &lt;-- cambiar por TU puerto
+leds = {1: placa.get_pin("d:8:o"),       # 1 dedo  -> rojo
+        2: placa.get_pin("d:9:o"),       # 2 dedos -> azul
+        3: placa.get_pin("d:10:o")}      # 3 dedos -> amarillo
+
+def mostrar(dedos):
+    for n, led in leds.items():
+        led.write(1 if n == dedos else 0)    # prende solo el LED que coincide
+
+# ---------- CONTAR DEDOS ----------
+def distancia(a, b):
+    return math.hypot(a.x - b.x, a.y - b.y)
+
+def contar_dedos(mano):
+    p = mano.landmark                    # los 21 puntos de la mano
+    # Pulgar: punta (4) vs articulación (3), medido desde la base del meñique (17)
+    dedos = 1 if distancia(p[4], p[17]) &gt; distancia(p[3], p[17]) else 0
+    # Índice, mayor, anular, meñique: (punta, articulación del medio)
+    for punta, medio in [(8, 6), (12, 10), (16, 14), (20, 18)]:
+        if p[punta].y &lt; p[medio].y:      # punta más arriba = dedo levantado
+            dedos += 1
+    return dedos
+
+# ---------- CAMARA ----------
+mp_manos = mp.solutions.hands
+dibujo = mp.solutions.drawing_utils
+detector = mp_manos.Hands(max_num_hands=1, min_detection_confidence=0.7)
+cam = cv2.VideoCapture(0)
+
+try:
+    while True:
+        ok, frame = cam.read()
+        if not ok:
+            break
+        frame = cv2.flip(frame, 1)
+        resultado = detector.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+        dedos = 0                        # sin mano = 0
+        if resultado.multi_hand_landmarks:
+            mano = resultado.multi_hand_landmarks[0]
+            dibujo.draw_landmarks(frame, mano, mp_manos.HAND_CONNECTIONS)
+            dedos = contar_dedos(mano)
+
+        mostrar(dedos)                   # ordena al Arduino
+        cv2.putText(frame, str(dedos), (30, 80), cv2.FONT_HERSHEY_SIMPLEX,
+                    2.5, (0, 255, 136), 4)
+        cv2.imshow("Hechizos (Q para salir)", frame)
+        if cv2.waitKey(1) &amp; 0xFF == ord("q"):
+            break
+finally:
+    mostrar(0)                           # dejar todo apagado al salir
+    cam.release()
+    cv2.destroyAllWindows()
+    placa.exit()</code></pre></div>
+    <div class="alerta">Mano con los <b>dedos hacia arriba</b> y a unos 40-60 cm de la cámara. Si se prenden los LEDs "de a saltos", es normal: la cámara duda entre dos gestos. Es una versión sin filtro a propósito.</div>
+    <div class="hecho"><b>✅ Chequeo:</b> 1 dedo prende el rojo, 2 el azul, 3 el amarillo, y el puño apaga todo.</div>
+  </div>
+</section>
+
+<section id="desafios">
+  <div class="mn">MISIONES BONUS</div>
+  <h2>🏆 Desafíos para los que terminan antes</h2>
+  <div class="card">
+    <p>Elijan uno. De menor a mayor dificultad:</p>
+    <ul class="check">
+      <li><label><input type="checkbox" data-k="d1"><span><b>Nivel 1 · Colores propios:</b> cambien qué LED prende cada cantidad de dedos. Que 3 dedos prenda el rojo y 1 dedo el amarillo.</span></label></li>
+      <li><label><input type="checkbox" data-k="d2"><span><b>Nivel 2 · El portero:</b> evitar los saltos con un filtro. El gesto tiene que repetirse 5 cuadros seguidos antes de prender el LED. Pista: un contador y una variable <code class="i">ultimo</code>.</span></label></li>
+      <li><label><input type="checkbox" data-k="d3"><span><b>Nivel 3 · Más LEDs:</b> 4 dedos prende los tres a la vez y 5 dedos hace una secuencia.</span></label></li>
+      <li><label><input type="checkbox" data-k="d4"><span><b>Nivel 4 · Contraseña de gestos:</b> el LED amarillo solo prende si muestran primero 2 dedos, después 1 y después 3.</span></label></li>
+    </ul>
+    <div class="reto"><b>Pista del portero:</b> es como el portero de un boliche, que no te abre por tocar el timbre una vez. Tenés que mostrar el mismo gesto varias veces seguidas.</div>
+  </div>
+</section>
+
+<section id="fallas">
+  <h2>🛠️ Si algo falla</h2>
+  <div class="card">
+    <table>
+      <tr><th>Síntoma</th><th>Probá esto</th></tr>
+      <tr><td>Error de puerto</td><td>Cerrar el Arduino IDE y el Monitor Serie. Revisar el número de COM.</td></tr>
+      <tr><td>El LED no prende</td><td>Pata larga hacia la resistencia, pata corta a GND, pin correcto en el código. Probar con la Misión 2.</td></tr>
+      <tr><td>Ventana de cámara negra</td><td>Cambiar <code class="i">VideoCapture(0)</code> por <code class="i">VideoCapture(1)</code>. Cerrar Zoom, Meet u otros programas que usen la cámara.</td></tr>
+      <tr><td>No detecta la mano</td><td>Más luz, fondo simple, mano a 40-60 cm.</td></tr>
+      <tr><td>Cuenta mal los dedos</td><td>Dedos hacia arriba. Agregar <code class="i">print(dedos)</code> para ver qué número lee.</td></tr>
+      <tr><td>Error al instalar mediapipe</td><td>Avisar al profe: puede necesitar otra versión de Python.</td></tr>
+    </table>
+    <p><b>Regla de los 5 minutos:</b> si pasaron 5 minutos trabados, lean el error en voz alta, búsquenlo y comparen el código con la guía. Después, pregunten.</p>
+  </div>
+</section>
+
+<section id="glosario">
+  <h2>📒 Mi glosario técnico</h2>
+  <div class="card">
+    <p>Copien en su glosario personal, con sus palabras:</p>
+    <table>
+      <tr><th>Término</th><th>Pista</th></tr>
+      <tr><td>Firmata</td><td>Programa que convierte al Arduino en un "robot obediente"</td></tr>
+      <tr><td>Pin digital</td><td>Conexión que solo puede estar en 0 (apagado) o 1 (prendido)</td></tr>
+      <tr><td>Salida (output)</td><td>El Arduino manda energía, como a un LED</td></tr>
+      <tr><td>Frame</td><td>Una "foto" de la cámara</td></tr>
+      <tr><td>Landmark</td><td>Uno de los 21 puntos de la mano</td></tr>
+      <tr><td>Antirrebote</td><td>Filtro para ignorar cambios falsos de corta duración</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>🎯 Autoevaluación</h3>
+    <p>Contestá con tus palabras (en la carpeta o en el pizarrón):</p>
+    <ol>
+      <li>¿Qué hace Firmata y por qué sin él Python no podría controlar el Arduino?</li>
+      <li>¿Qué significa <code class="i">"d:8:o"</code>?</li>
+      <li>¿Cómo sabe el programa si un dedo está levantado?</li>
+      <li>¿Por qué los LEDs saltaban al principio? ¿Cómo lo solucionarías?</li>
+    </ol>
+    <p style="text-align:center"><b>Si llegaste hasta acá, ya sabés conectar visión por computadora con hardware real. Eso lo hacen técnicos de verdad. 🚀</b></p>
+  </div>
+</section>
+
+</main>
+
+<footer>Prof. Pablo Limardo – Jefatura ACPI · Escuela Industrial N° 9 "15 de Noviembre" · El Calafate</footer>
+
+<script>
+window.addEventListener('scroll',function(){
+  var h=document.documentElement;
+  document.getElementById('progreso').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+});
+document.querySelectorAll('.code').forEach(function(box){
+  var b=document.createElement('button');
+  b.className='copiar';b.textContent='copiar';
+  b.addEventListener('click',function(){
+    var t=box.querySelector('pre').innerText;
+    if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){
+      b.textContent='¡copiado!';setTimeout(function(){b.textContent='copiar';},1500);});}
+  });
+  box.appendChild(b);
+});
+document.querySelectorAll('ul.check input').forEach(function(c){
+  var k='taller_'+c.dataset.k;
+  try{c.checked=localStorage.getItem(k)==='1';}catch(e){}
+  c.addEventListener('change',function(){try{localStorage.setItem(k,c.checked?'1':'0');}catch(e){}});
+});
+</script>
+</body>
+</html>
